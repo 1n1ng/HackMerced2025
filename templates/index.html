@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Free Healthcare Resources</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        form { margin: 20px; }
+        input, button { padding: 10px; margin: 5px; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Find Free Healthcare Resources</h1>
+    <form method="POST">
+        <input type="text" name="address" placeholder="Enter Your Address" required>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if places %}
+    <h2>Results for: {{ address }}</h2>
+    <ul>
+        {% for place in places %}
+        <li>
+            <strong>{{ place.name }}</strong> - {{ place.address }} <br>
+            <a href="https://www.openstreetmap.org/?mlat={{ place.lat }}&mlon={{ place.lng }}" target="_blank">View on Map</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</body>
+</html>
+
