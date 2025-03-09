@@ -1,27 +1,39 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template
 import requests
 from geopy.distance import geodesic
 
 app = Flask(__name__)
 
 # 🔹 Convert Address to Lat/Lng using OpenStreetMap (Nominatim API)
-def get_lat_lng(address):
-    url = f"https://nominatim.openstreetmap.org/search?q={address}&format=json"
-    response = requests.get(url)
+def get_lat_lng(street, city, state, country):
+    full_address = f"{street}, {city}, {state}, {country}"
+    url = f"https://nominatim.openstreetmap.org/search?q={full_address}&format=json"
 
-    print("Response Status Code:", response.status_code)  # Debugging
-    print("Response Text:", response.text)  # Debugging
+    headers = {
+        "User-Agent": "MyHealthcareApp/1.0 (your@email.com)"  # Use a valid email or app name
+    }
 
-    try:
-        data = response.json()  # Convert response to JSON
-    except requests.exceptions.JSONDecodeError:
-        print("Error: Response is not in JSON format!")
+    response = requests.get(url, headers=headers)
+    
+    print("🔹 Requested Address:", full_address)
+    print("🔹 API Response Code:", response.status_code)
+    print("🔹 API Response Text:", response.text)
+
+    if response.status_code == 403:
+        print("❌ Error: Blocked by Nominatim. Try again later.")
         return None, None
 
-    if data and len(data) > 0:
-        return float(data[0]["lat"]), float(data[0]["lon"])
+    try:
+        data = response.json()
+        if not data:
+            print("❌ No results found for this address.")
+            return None, None
+    except requests.exceptions.JSONDecodeError:
+        print("❌ Error: Response is not in JSON format!")
+        return None, None
 
-    return None, None
+    print("✅ Parsed Lat:", data[0]["lat"], "Lng:", data[0]["lon"])
+    return float(data[0]["lat"]), float(data[0]["lon"])
 
 # 🔹 Get Nearby Healthcare Locations using OpenStreetMap (Overpass API)
 def get_nearby_healthcare(lat, lng, radius=5000):
@@ -47,6 +59,27 @@ def get_nearby_healthcare(lat, lng, radius=5000):
 
     return places
 
+# 🔹 Get 211 Resources using API (Alternative Resources)
+def get_211_resources(lat, lng):
+    url = f"https://api.211.org/resources?latitude={lat}&longitude={lng}&radius=5000"
+    response = requests.get(url)
+    
+    resources = []
+    if response.status_code == 200:
+        data = response.json()
+        for resource in data.get('data', []):
+            resource_details = {
+                "name": resource.get("name", "Unknown Resource"),
+                "lat": lat,  # Using the same lat/lng for the resource, may need more precise data if available
+                "lng": lng,
+                "address": resource.get("address", "Unknown Address")
+            }
+            resources.append(resource_details)
+    else:
+        print(f"❌ Error fetching 211 resources: {response.status_code}")
+    
+    return resources
+
 # 🔹 Sort locations by distance
 def sort_by_distance(user_lat, user_lng, places):
     user_location = (user_lat, user_lng)
@@ -58,20 +91,30 @@ def sort_by_distance(user_lat, user_lng, places):
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        address = request.form["address"]
+        street = request.form["street"]
+        city = request.form["city"]
+        state = request.form["state"]
+        country = request.form["country"]
 
-        lat, lng = get_lat_lng(address)  # Convert address to lat/lng
+        lat, lng = get_lat_lng(street, city, state, country)
         if lat is None or lng is None:
-            return "Invalid address. Please try again."
+            return render_template("index.html", error="Invalid address. Please try again.")
 
-        # Fetch & sort healthcare locations
-        places = get_nearby_healthcare(lat, lng)
-        sorted_places = sort_by_distance(lat, lng, places)[:5]  # Top 5 results
+        # Fetch healthcare locations and 211 resources
+        healthcare_places = get_nearby_healthcare(lat, lng)
+        resources_211 = get_211_resources(lat, lng)
+        
+        # Combine both sources of resources
+        all_places = healthcare_places + resources_211
+        
+        # Sort all places by distance
+        sorted_places = sort_by_distance(lat, lng, all_places)[:5]  # Top 5 results
 
-        return render_template("index.html", places=sorted_places, address=address)
+        return render_template("index.html", places=sorted_places, address=f"{street}, {city}, {state}, {country}")
 
     return render_template("index.html", places=None)
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 

@@ -6,18 +6,35 @@
     <title>Find Free Healthcare Resources</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
-        form { margin: 20px; }
-        input, button { padding: 10px; margin: 5px; }
+        form { margin: 20px; text-align: left; display: inline-block; }
+        label { display: block; margin-top: 10px; }
+        input, button { padding: 10px; margin: 5px; width: 100%; max-width: 400px; }
         ul { list-style: none; padding: 0; }
         li { margin: 10px 0; }
+        .error { color: red; }
     </style>
 </head>
 <body>
     <h1>Find Free Healthcare Resources</h1>
     <form method="POST">
-        <input type="text" name="address" placeholder="Enter Your Address" required>
+        <label for="street">Street Address</label>
+        <input type="text" name="street" id="street" required value="{{ request.form['street'] if request.form.get('street') else '' }}"><br>
+        
+        <label for="city">City</label>
+        <input type="text" name="city" id="city" required value="{{ request.form['city'] if request.form.get('city') else '' }}"><br>
+        
+        <label for="state">State</label>
+        <input type="text" name="state" id="state" required value="{{ request.form['state'] if request.form.get('state') else '' }}"><br>
+        
+        <label for="country">Country</label>
+        <input type="text" name="country" id="country" required value="{{ request.form['country'] if request.form.get('country') else '' }}"><br>
+        
         <button type="submit">Search</button>
     </form>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
 
     {% if places %}
     <h2>Results for: {{ address }}</h2>
