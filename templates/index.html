@@ -83,8 +83,18 @@
             line-height: 1.5;
             white-space: pre-wrap;
         }
+        .location-recommendation {
+            background: #e6f7e6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #34a853;
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
         
-        .ai-response strong {
+        .ai-response strong, .location-recommendation strong {
             color: #4285f4;
         }
         h2 {
@@ -132,6 +142,17 @@
                 {{ ai_response|safe }}
             </div>
             {% endif %}
+            
+            {% if location_recommendation %}
+            <div class="location-recommendation">
+                {% set rec_text = location_recommendation|safe %}
+                {% if 'RECOMMENDATION:' in rec_text %}
+                    {{ rec_text[rec_text.find('RECOMMENDATION:'):]|safe }}
+                {% else %}
+                    {{ location_recommendation|safe }}
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -152,4 +173,3 @@
     {% endif %}
 </body>
 </html>
-
